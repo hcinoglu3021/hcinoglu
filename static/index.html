@@ -1,463 +1,380 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Voice Organizer</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Milestone To-Do Board</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f5f5f0;
-      color: #1a1a2e;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 40px 20px;
+    :root {
+      --bg: #f6f7fb; --card: #fff; --text: #1f2937; --muted: #6b7280; --accent: #4f46e5;
+      --ok: #059669; --danger: #dc2626; --border: #e5e7eb;
     }
-
-    h1 {
-      font-size: 1.8rem;
-      font-weight: 700;
-      margin-bottom: 8px;
-      letter-spacing: -0.5px;
-    }
-
-    .subtitle {
-      color: #666;
-      font-size: 0.95rem;
-      margin-bottom: 40px;
-    }
-
-    .card {
-      background: #fff;
-      border-radius: 16px;
-      box-shadow: 0 2px 20px rgba(0,0,0,0.08);
-      padding: 32px;
-      width: 100%;
-      max-width: 680px;
-    }
-
-    /* Record button */
-    .btn-record {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin: 0 auto;
-      padding: 16px 36px;
-      border: none;
-      border-radius: 50px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
-      background: #1a1a2e;
-      color: #fff;
-    }
-
-    .btn-record:hover { background: #2d2d4e; }
-    .btn-record:active { transform: scale(0.97); }
-    .btn-record:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    .btn-record.recording {
-      background: #e53935;
-      animation: pulse 1.4s ease-in-out infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(229,57,53,0.4); }
-      50%       { box-shadow: 0 0 0 12px rgba(229,57,53,0); }
-    }
-
-    .dot {
-      width: 10px; height: 10px;
-      border-radius: 50%;
-      background: currentColor;
-      flex-shrink: 0;
-    }
-
-    .btn-record.recording .dot { background: #fff; }
-
-    /* Timer */
-    .timer {
-      text-align: center;
-      font-size: 0.9rem;
-      color: #999;
-      margin-top: 12px;
-      height: 20px;
-    }
-
-    /* Status / spinner */
-    .status {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      margin-top: 20px;
-      font-size: 0.9rem;
-      color: #555;
-      min-height: 28px;
-    }
-
-    .spinner {
-      width: 18px; height: 18px;
-      border: 2px solid #ddd;
-      border-top-color: #1a1a2e;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      flex-shrink: 0;
-    }
-
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* Error */
-    .error-msg {
-      background: #fff3f3;
-      border: 1px solid #fcc;
-      border-radius: 8px;
-      padding: 12px 16px;
-      margin-top: 20px;
-      font-size: 0.9rem;
-      color: #c0392b;
-      display: none;
-    }
-
-    /* Notes output */
-    .notes-section {
-      margin-top: 28px;
-      display: none;
-    }
-
-    .notes-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 14px;
-    }
-
-    .notes-label {
-      font-size: 0.8rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #999;
-    }
-
-    .btn-copy {
-      padding: 6px 14px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      background: #fff;
-      font-size: 0.82rem;
-      cursor: pointer;
-      color: #444;
-      transition: background 0.15s;
-    }
-
-    .btn-copy:hover { background: #f5f5f0; }
-
-    .notes-body {
-      font-family: Georgia, "Times New Roman", serif;
-      font-size: 1rem;
-      line-height: 1.7;
-      color: #222;
-    }
-
-    .notes-body h2 {
-      font-size: 1.15rem;
-      margin: 18px 0 6px;
-      color: #1a1a2e;
-      border-bottom: 1px solid #eee;
-      padding-bottom: 4px;
-    }
-
-    .notes-body h2:first-child { margin-top: 0; }
-
-    .notes-body h3 {
-      font-size: 1rem;
-      margin: 14px 0 4px;
-      color: #333;
-    }
-
-    .notes-body ul {
-      padding-left: 20px;
-      margin: 4px 0 10px;
-    }
-
-    .notes-body li { margin-bottom: 4px; }
-
-    .notes-body strong { color: #1a1a2e; }
-
-    .notes-body p { margin-bottom: 10px; }
-
-    /* Record again link */
-    .btn-again {
-      display: block;
-      margin: 20px auto 0;
-      background: none;
-      border: none;
-      color: #0066cc;
-      font-size: 0.9rem;
-      cursor: pointer;
-      text-decoration: underline;
-      text-underline-offset: 3px;
-    }
-
-    .btn-again:hover { color: #004499; }
-
-    /* Divider */
-    .divider {
-      border: none;
-      border-top: 1px solid #eee;
-      margin: 24px 0;
-      display: none;
-    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--text); background: linear-gradient(180deg,#eef2ff 0%,var(--bg) 30%); min-height: 100vh; padding: 24px; }
+    .app { max-width: 1080px; margin: 0 auto; background: var(--card); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 10px 30px rgba(15,23,42,.08); overflow: hidden; }
+    .header { padding: 20px; border-bottom: 1px solid var(--border); }
+    h1 { margin: 0; font-size: 1.5rem; }
+    .sub { color: var(--muted); margin-top: 8px; }
+    .grid { display: grid; grid-template-columns: 1.4fr .8fr; gap: 18px; padding: 18px; }
+    .panel { border: 1px solid var(--border); border-radius: 12px; padding: 14px; background: #fff; }
+    .panel h2 { margin: 0 0 12px; font-size: 1rem; }
+    .form { display: grid; grid-template-columns: 1.7fr .85fr .75fr .85fr .95fr auto; gap: 8px; margin-bottom: 12px; }
+    input, select, button { padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; font-size: .9rem; }
+    button { cursor: pointer; }
+    .btn-primary { background: var(--accent); color: #fff; border: none; }
+    .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .tab { background: #f3f4f6; border: 1px solid var(--border); }
+    .tab.active { background: #ede9fe; border-color: #c4b5fd; color: #4338ca; }
+    .task-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+    .task { border: 1px solid var(--border); border-radius: 10px; padding: 10px; display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: start; background: #fff; }
+    .task[draggable="true"] { cursor: grab; }
+    .task.dragging { opacity: .5; }
+    .task.drop-target { outline: 2px dashed #818cf8; }
+    .task.done { opacity: .7; }
+    .task-main { display: flex; flex-direction: column; gap: 4px; }
+    .meta { color: var(--muted); font-size: .8rem; }
+    .badge { font-size: .72rem; border-radius: 999px; padding: 3px 8px; border: 1px solid var(--border); text-transform: capitalize; }
+    .p-high { color: #991b1b; border-color: #fecaca; background: #fef2f2; }
+    .p-medium { color: #92400e; border-color: #fde68a; background: #fffbeb; }
+    .p-low { color: #065f46; border-color: #a7f3d0; background: #ecfdf5; }
+    .task-actions { display: grid; gap: 6px; }
+    .ghost { background: #fff; }
+    .danger { color: var(--danger); }
+    .subtasks { margin-top: 6px; padding: 8px; border: 1px dashed #d1d5db; border-radius: 8px; }
+    .subtask-row { display: flex; align-items: center; gap: 8px; font-size: .85rem; margin-top: 4px; }
+    .subtask-row:first-child { margin-top: 0; }
+    .milestone-card { border: 1px dashed #c7d2fe; background: #f8faff; border-radius: 12px; padding: 10px; margin-bottom: 10px; }
+    .bar { height: 10px; background: #e5e7eb; border-radius: 999px; overflow: hidden; }
+    .bar > div { height: 100%; background: linear-gradient(90deg, var(--ok), #10b981); width: 0%; }
+    .hint { color: var(--muted); font-size: .8rem; margin-top: 4px; }
+    .toolbar { display: flex; gap: 8px; margin-bottom: 10px; }
+    @media (max-width: 980px) { .grid { grid-template-columns: 1fr; } .form { grid-template-columns: 1fr 1fr 1fr; } }
   </style>
 </head>
 <body>
-  <h1>Voice Organizer</h1>
-  <p class="subtitle">Speak your thoughts. Get structured notes.</p>
-
-  <div class="card">
-    <button class="btn-record" id="recordBtn">
-      <span class="dot"></span>
-      <span id="btnLabel">Start Recording</span>
-    </button>
-
-    <div class="timer" id="timer"></div>
-    <div class="status" id="status"></div>
-    <div class="error-msg" id="errorMsg"></div>
-
-    <hr class="divider" id="divider">
-
-    <div class="notes-section" id="notesSection">
-      <div class="notes-header">
-        <span class="notes-label">Organized Notes</span>
-        <button class="btn-copy" id="copyBtn">Copy markdown</button>
-      </div>
-      <div class="notes-body" id="notesBody"></div>
+  <div class="app">
+    <div class="header">
+      <h1>Milestone To-Do Board</h1>
+      <p class="sub">Recurring tasks, reminders, subtasks, and drag-drop ordering included.</p>
     </div>
 
-    <button class="btn-again" id="againBtn" style="display:none">Record again</button>
+    <div class="grid">
+      <section class="panel">
+        <h2>Add a Task</h2>
+        <form class="form" id="taskForm">
+          <input id="taskTitle" placeholder="Task title" required maxlength="120" />
+          <input id="taskDate" type="date" />
+          <select id="taskPriority"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select>
+          <select id="taskRepeat"><option value="none" selected>No repeat</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select>
+          <input id="taskReminder" type="datetime-local" title="Reminder time" />
+          <button class="btn-primary" type="submit">Add</button>
+        </form>
+
+        <div class="toolbar">
+          <button id="notifBtn" type="button" class="ghost">Enable notifications</button>
+          <span class="hint">Drag tasks to reorder.</span>
+        </div>
+
+        <div class="tabs" id="tabs">
+          <button class="tab active" data-tab="all" type="button">All</button>
+          <button class="tab" data-tab="today" type="button">Today</button>
+          <button class="tab" data-tab="upcoming" type="button">Upcoming</button>
+          <button class="tab" data-tab="completed" type="button">Completed</button>
+          <button class="tab" data-tab="milestone" type="button">Milestones</button>
+        </div>
+        <ul class="task-list" id="taskList"></ul>
+      </section>
+
+      <aside class="panel">
+        <h2>Milestones</h2>
+        <form id="milestoneForm" class="form" style="grid-template-columns: 1fr auto;">
+          <input id="milestoneName" placeholder="Milestone name" required maxlength="80" />
+          <button class="btn-primary" type="submit">Add</button>
+        </form>
+        <div id="milestones"></div>
+
+        <h2 style="margin-top: 12px; margin-bottom: 8px;">Overall Progress</h2>
+        <div class="bar"><div id="progressBar"></div></div>
+        <div class="hint" id="progressText">0 of 0 tasks complete</div>
+      </aside>
+    </div>
   </div>
 
   <script>
-    // ── DOM refs ──────────────────────────────────────────────────────────────
-    const recordBtn   = document.getElementById('recordBtn');
-    const btnLabel    = document.getElementById('btnLabel');
-    const timerEl     = document.getElementById('timer');
-    const statusEl    = document.getElementById('status');
-    const errorMsg    = document.getElementById('errorMsg');
-    const divider     = document.getElementById('divider');
-    const notesSection = document.getElementById('notesSection');
-    const notesBody   = document.getElementById('notesBody');
-    const copyBtn     = document.getElementById('copyBtn');
-    const againBtn    = document.getElementById('againBtn');
+    const KEY = 'todo_milestone_app_v2';
+    const state = JSON.parse(localStorage.getItem(KEY) || '{"tasks":[],"milestones":[],"activeTab":"all"}');
+    let dragTaskId = null;
 
-    // ── State ─────────────────────────────────────────────────────────────────
-    let mediaRecorder = null;
-    let audioChunks   = [];
-    let timerInterval = null;
-    let slowTimeout   = null;
-    let elapsedSec    = 0;
-    let currentMarkdown = '';
+    const taskForm = document.getElementById('taskForm');
+    const taskList = document.getElementById('taskList');
+    const tabs = document.getElementById('tabs');
+    const notifBtn = document.getElementById('notifBtn');
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-    function formatTime(sec) {
-      const m = String(Math.floor(sec / 60)).padStart(2, '0');
-      const s = String(sec % 60).padStart(2, '0');
-      return `${m}:${s}`;
+    const titleInput = document.getElementById('taskTitle');
+    const dateInput = document.getElementById('taskDate');
+    const priorityInput = document.getElementById('taskPriority');
+    const repeatInput = document.getElementById('taskRepeat');
+    const reminderInput = document.getElementById('taskReminder');
+
+    const milestoneForm = document.getElementById('milestoneForm');
+    const milestoneName = document.getElementById('milestoneName');
+    const milestoneWrap = document.getElementById('milestones');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+
+    const uid = () => Math.random().toString(36).slice(2, 10);
+    const save = () => localStorage.setItem(KEY, JSON.stringify(state));
+
+    function normalizeTask(task) {
+      return {
+        id: task.id || uid(),
+        title: task.title || '',
+        dueDate: task.dueDate || '',
+        priority: task.priority || 'medium',
+        done: !!task.done,
+        milestoneId: task.milestoneId || '',
+        repeat: task.repeat || 'none',
+        reminderAt: task.reminderAt || '',
+        reminderFired: !!task.reminderFired,
+        subtasks: Array.isArray(task.subtasks) ? task.subtasks : []
+      };
+    }
+    state.tasks = state.tasks.map(normalizeTask);
+
+    function nextDate(currentDate, repeat) {
+      if (!currentDate || repeat === 'none') return '';
+      const d = new Date(currentDate + 'T00:00:00');
+      if (repeat === 'daily') d.setDate(d.getDate() + 1);
+      if (repeat === 'weekly') d.setDate(d.getDate() + 7);
+      if (repeat === 'monthly') d.setMonth(d.getMonth() + 1);
+      return d.toISOString().slice(0, 10);
     }
 
-    function setStatus(html, showSpinner = false) {
-      statusEl.innerHTML = showSpinner
-        ? `<div class="spinner"></div><span>${html}</span>`
-        : html;
+    function repeatReminder(currentReminder, repeat) {
+      if (!currentReminder || repeat === 'none') return '';
+      const d = new Date(currentReminder);
+      if (repeat === 'daily') d.setDate(d.getDate() + 1);
+      if (repeat === 'weekly') d.setDate(d.getDate() + 7);
+      if (repeat === 'monthly') d.setMonth(d.getMonth() + 1);
+      return d.toISOString().slice(0,16);
     }
 
-    function showError(msg) {
-      errorMsg.textContent = msg;
-      errorMsg.style.display = 'block';
-      setStatus('');
+    function isToday(date) {
+      if (!date) return false;
+      return new Date(date + 'T00:00:00').toDateString() === new Date().toDateString();
+    }
+    function isUpcoming(date) {
+      if (!date) return false;
+      const d = new Date(date + 'T00:00:00');
+      const t = new Date(); t.setHours(0,0,0,0);
+      return d > t;
     }
 
-    function clearError() {
-      errorMsg.textContent = '';
-      errorMsg.style.display = 'none';
+    function filteredTasks() {
+      const tab = state.activeTab || 'all';
+      if (tab === 'today') return state.tasks.filter(t => !t.done && isToday(t.dueDate));
+      if (tab === 'upcoming') return state.tasks.filter(t => !t.done && isUpcoming(t.dueDate));
+      if (tab === 'completed') return state.tasks.filter(t => t.done);
+      if (tab === 'milestone') return state.tasks.filter(t => t.milestoneId);
+      return state.tasks;
     }
 
-    // ── Markdown → HTML renderer (covers what Claude produces) ────────────────
-    function renderMarkdown(md) {
-      // Escape HTML entities first
-      let html = md
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-
-      // Headings
-      html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-      html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-
-      // Bold
-      html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-
-      // Bullet lines → <li>
-      html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
-
-      // Wrap consecutive <li> blocks in <ul>
-      html = html.replace(/(<li>[\s\S]*?<\/li>)(?!\s*<li>)/g, (match) => {
-        return '<ul>' + match + '</ul>';
-      });
-
-      // Paragraphs: double newlines between non-tag lines
-      const lines = html.split('\n');
-      const parts = [];
-      let para = [];
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (trimmed === '') {
-          if (para.length) { parts.push('<p>' + para.join(' ') + '</p>'); para = []; }
-        } else if (/^<(h[23]|ul|li)/.test(trimmed)) {
-          if (para.length) { parts.push('<p>' + para.join(' ') + '</p>'); para = []; }
-          parts.push(trimmed);
-        } else {
-          para.push(trimmed);
-        }
-      }
-      if (para.length) parts.push('<p>' + para.join(' ') + '</p>');
-
-      return parts.join('\n');
-    }
-
-    // ── Recording ─────────────────────────────────────────────────────────────
-    async function startRecording() {
-      clearError();
-      notesSection.style.display = 'none';
-      divider.style.display      = 'none';
-      againBtn.style.display     = 'none';
-
-      let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      } catch (err) {
-        if (err.name === 'NotAllowedError') {
-          showError('Microphone access denied. Check browser permissions and try again.');
-        } else {
-          showError('Could not access microphone: ' + err.message);
-        }
+    function renderMilestones() {
+      milestoneWrap.innerHTML = '';
+      if (!state.milestones.length) {
+        milestoneWrap.innerHTML = '<p class="hint">No milestones yet. Add one, then assign tasks.</p>';
         return;
       }
-
-      audioChunks = [];
-      mediaRecorder = new MediaRecorder(stream);
-      mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
-      mediaRecorder.onstop = handleRecordingStop;
-      mediaRecorder.start(250); // flush every 250 ms
-
-      // UI: recording state
-      recordBtn.classList.add('recording');
-      btnLabel.textContent = 'Stop Recording';
-      setStatus('');
-      timerEl.textContent = '00:00';
-      elapsedSec = 0;
-      timerInterval = setInterval(() => {
-        elapsedSec++;
-        timerEl.textContent = formatTime(elapsedSec);
-      }, 1000);
-    }
-
-    function stopRecording() {
-      clearInterval(timerInterval);
-      timerEl.textContent = '';
-      recordBtn.classList.remove('recording');
-      recordBtn.disabled = true;
-      btnLabel.textContent = 'Processing…';
-      mediaRecorder.stop();
-      mediaRecorder.stream.getTracks().forEach(t => t.stop());
-    }
-
-    async function handleRecordingStop() {
-      setStatus('Transcribing audio…', true);
-
-      const mimeType = mediaRecorder.mimeType;
-      const ext = mimeType.includes('ogg') ? 'ogg'
-                : mimeType.includes('mp4') ? 'mp4'
-                : 'webm';
-      const blob = new Blob(audioChunks, { type: mimeType });
-      const formData = new FormData();
-      formData.append('audio', blob, `recording.${ext}`);
-
-      // Warn if taking a long time
-      slowTimeout = setTimeout(() => {
-        setStatus('Taking longer than usual — almost there…', true);
-      }, 15000);
-
-      try {
-        const res = await fetch('/transcribe', { method: 'POST', body: formData });
-        clearTimeout(slowTimeout);
-
-        if (!res.ok) {
-          const detail = await res.json().catch(() => ({}));
-          showError('Server error: ' + (detail.detail || res.statusText));
-          resetButton();
-          return;
-        }
-
-        const data = await res.json();
-
-        if (data.error === 'no_speech') {
-          showError('No speech detected. Please try recording again.');
-        } else if (data.error) {
-          showError(data.error);
-        } else {
-          currentMarkdown = data.notes;
-          notesBody.innerHTML = renderMarkdown(data.notes);
-          divider.style.display      = 'block';
-          notesSection.style.display = 'block';
-          againBtn.style.display     = 'block';
-        }
-      } catch (err) {
-        clearTimeout(slowTimeout);
-        showError('Network error: ' + err.message);
-      }
-
-      setStatus('');
-      resetButton();
-    }
-
-    function resetButton() {
-      recordBtn.disabled = false;
-      recordBtn.classList.remove('recording');
-      btnLabel.textContent = 'Start Recording';
-    }
-
-    // ── Event listeners ───────────────────────────────────────────────────────
-    recordBtn.addEventListener('click', () => {
-      if (mediaRecorder && mediaRecorder.state === 'recording') {
-        stopRecording();
-      } else {
-        startRecording();
-      }
-    });
-
-    againBtn.addEventListener('click', () => {
-      notesSection.style.display = 'none';
-      divider.style.display      = 'none';
-      againBtn.style.display     = 'none';
-      clearError();
-    });
-
-    copyBtn.addEventListener('click', () => {
-      navigator.clipboard.writeText(currentMarkdown).then(() => {
-        copyBtn.textContent = 'Copied!';
-        setTimeout(() => { copyBtn.textContent = 'Copy markdown'; }, 1500);
-      }).catch(() => {
-        copyBtn.textContent = 'Copy failed';
-        setTimeout(() => { copyBtn.textContent = 'Copy markdown'; }, 1500);
+      state.milestones.forEach(ms => {
+        const related = state.tasks.filter(t => t.milestoneId === ms.id);
+        const done = related.filter(t => t.done).length;
+        const pct = related.length ? Math.round((done / related.length) * 100) : 0;
+        const el = document.createElement('div');
+        el.className = 'milestone-card';
+        el.innerHTML = `<strong>${ms.name}</strong><div class="hint">${done}/${related.length} tasks done (${pct}%)</div>`;
+        milestoneWrap.appendChild(el);
       });
+    }
+
+    function moveTask(dragId, dropId) {
+      if (!dragId || dragId === dropId) return;
+      const from = state.tasks.findIndex(t => t.id === dragId);
+      const to = state.tasks.findIndex(t => t.id === dropId);
+      if (from < 0 || to < 0) return;
+      const [item] = state.tasks.splice(from, 1);
+      state.tasks.splice(to, 0, item);
+    }
+
+    function renderTasks() {
+      [...tabs.querySelectorAll('.tab')].forEach(btn => btn.classList.toggle('active', btn.dataset.tab === state.activeTab));
+      taskList.innerHTML = '';
+      const tasks = filteredTasks();
+      if (!tasks.length) { taskList.innerHTML = '<li class="hint">No tasks in this tab yet.</li>'; return; }
+
+      tasks.forEach(task => {
+        const li = document.createElement('li');
+        li.className = `task ${task.done ? 'done' : ''}`;
+        li.draggable = true;
+        li.dataset.id = task.id;
+        const milestoneLabel = state.milestones.find(m => m.id === task.milestoneId)?.name;
+        const reminderLabel = task.reminderAt ? ` • Reminder: ${task.reminderAt.replace('T', ' ')}` : '';
+        const repeatLabel = task.repeat !== 'none' ? ` • Repeats: ${task.repeat}` : '';
+        li.innerHTML = `
+          <input type="checkbox" ${task.done ? 'checked' : ''} data-action="toggle" data-id="${task.id}" />
+          <div class="task-main">
+            <div>${task.title}</div>
+            <div class="meta">${task.dueDate ? `Due: ${task.dueDate}` : 'No due date'}${milestoneLabel ? ` • Milestone: ${milestoneLabel}` : ''}${repeatLabel}${reminderLabel}</div>
+            <div class="subtasks" id="subtasks-${task.id}"></div>
+          </div>
+          <div class="task-actions">
+            <span class="badge p-${task.priority}">${task.priority}</span>
+            <button class="ghost" data-action="add-subtask" data-id="${task.id}" type="button">+ Subtask</button>
+            <button class="ghost" data-action="assign" data-id="${task.id}" type="button">🏁</button>
+            <button class="ghost danger" data-action="delete" data-id="${task.id}" type="button">✕</button>
+          </div>
+        `;
+        taskList.appendChild(li);
+
+        const subWrap = li.querySelector(`#subtasks-${task.id}`);
+        if (!task.subtasks.length) {
+          subWrap.innerHTML = '<div class="hint">No subtasks yet.</div>';
+        } else {
+          subWrap.innerHTML = task.subtasks.map((s, idx) => `
+            <label class="subtask-row"><input type="checkbox" data-action="toggle-subtask" data-id="${task.id}" data-subindex="${idx}" ${s.done ? 'checked' : ''}/> ${s.title}</label>
+          `).join('');
+        }
+
+        li.addEventListener('dragstart', () => { dragTaskId = task.id; li.classList.add('dragging'); });
+        li.addEventListener('dragend', () => { dragTaskId = null; li.classList.remove('dragging'); li.classList.remove('drop-target'); });
+        li.addEventListener('dragover', (e) => { e.preventDefault(); li.classList.add('drop-target'); });
+        li.addEventListener('dragleave', () => li.classList.remove('drop-target'));
+        li.addEventListener('drop', (e) => {
+          e.preventDefault();
+          moveTask(dragTaskId, task.id);
+          render();
+        });
+      });
+    }
+
+    function renderProgress() {
+      const total = state.tasks.length;
+      const done = state.tasks.filter(t => t.done).length;
+      const pct = total ? Math.round((done / total) * 100) : 0;
+      progressBar.style.width = `${pct}%`;
+      progressText.textContent = `${done} of ${total} tasks complete`;
+    }
+
+    function render() { save(); renderTasks(); renderMilestones(); renderProgress(); }
+
+    function createRecurringTaskIfNeeded(task) {
+      if (task.repeat === 'none') return;
+      const newDue = nextDate(task.dueDate, task.repeat);
+      const newReminder = repeatReminder(task.reminderAt, task.repeat);
+      state.tasks.push(normalizeTask({
+        title: task.title,
+        dueDate: newDue,
+        priority: task.priority,
+        repeat: task.repeat,
+        reminderAt: newReminder,
+        milestoneId: task.milestoneId,
+        subtasks: task.subtasks.map(s => ({ title: s.title, done: false }))
+      }));
+    }
+
+    function requestNotifications() {
+      if (!('Notification' in window)) { alert('This browser does not support notifications.'); return; }
+      Notification.requestPermission().then(result => {
+        notifBtn.textContent = result === 'granted' ? 'Notifications enabled' : 'Notifications blocked';
+      });
+    }
+
+    function checkReminders() {
+      if (!('Notification' in window) || Notification.permission !== 'granted') return;
+      const now = Date.now();
+      state.tasks.forEach(task => {
+        if (task.done || !task.reminderAt || task.reminderFired) return;
+        const remindAt = new Date(task.reminderAt).getTime();
+        if (!Number.isNaN(remindAt) && now >= remindAt) {
+          new Notification('Task reminder', { body: task.title });
+          task.reminderFired = true;
+        }
+      });
+      save();
+    }
+
+    taskForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const title = titleInput.value.trim();
+      if (!title) return;
+      state.tasks.push(normalizeTask({
+        title,
+        dueDate: dateInput.value || '',
+        priority: priorityInput.value,
+        repeat: repeatInput.value,
+        reminderAt: reminderInput.value || '',
+        subtasks: []
+      }));
+      taskForm.reset();
+      priorityInput.value = 'medium';
+      repeatInput.value = 'none';
+      render();
+      titleInput.focus();
     });
+
+    tabs.addEventListener('click', (e) => {
+      if (!e.target.matches('.tab')) return;
+      state.activeTab = e.target.dataset.tab;
+      render();
+    });
+
+    notifBtn.addEventListener('click', requestNotifications);
+
+    taskList.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      const action = btn.dataset.action;
+      const id = btn.dataset.id;
+      const task = state.tasks.find(t => t.id === id);
+      if (!task) return;
+
+      if (action === 'toggle') {
+        const nowDone = !task.done;
+        task.done = nowDone;
+        if (nowDone) createRecurringTaskIfNeeded(task);
+      } else if (action === 'delete') {
+        state.tasks = state.tasks.filter(t => t.id !== id);
+      } else if (action === 'assign') {
+        if (!state.milestones.length) {
+          alert('Create a milestone first.');
+        } else {
+          const options = state.milestones.map((m,i) => `${i + 1}. ${m.name}`).join('\n');
+          const pick = prompt(`Assign milestone (number):\n${options}\n0 to clear`, '1');
+          const idx = Number(pick);
+          task.milestoneId = idx === 0 ? '' : (state.milestones[idx - 1]?.id || task.milestoneId);
+        }
+      } else if (action === 'add-subtask') {
+        const name = prompt('Subtask title:');
+        if (name && name.trim()) task.subtasks.push({ title: name.trim(), done: false });
+      } else if (action === 'toggle-subtask') {
+        const subIndex = Number(btn.dataset.subindex);
+        const sub = task.subtasks[subIndex];
+        if (sub) sub.done = !sub.done;
+      }
+      render();
+    });
+
+    milestoneForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = milestoneName.value.trim();
+      if (!name) return;
+      state.milestones.push({ id: uid(), name });
+      milestoneForm.reset();
+      render();
+    });
+
+    state.activeTab = state.activeTab || 'all';
+    render();
+    setInterval(checkReminders, 30000);
   </script>
 </body>
 </html>
