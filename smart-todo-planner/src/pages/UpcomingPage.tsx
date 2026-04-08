@@ -6,38 +6,35 @@ import { format, addDays, parseISO, isSameDay, isAfter, startOfDay } from 'date-
 export default function UpcomingPage() {
   const tasks = useStore(s => s.tasks);
 
-  const grouped = useMemo(() => {
-    const active = tasks.filter(t => !t.archived && t.status !== 'completed' && t.dueDate);
+  const { grouped, noDueDateTasks } = useMemo(() => {
+    const active = tasks.filter(t => !t.archived && t.status !== 'completed');
     const today = startOfDay(new Date());
-    const days: { date: Date; label: string; tasks: typeof active }[] = [];
+    const days: { label: string; tasks: typeof active }[] = [];
 
     for (let i = 0; i < 14; i++) {
       const date = addDays(today, i);
       const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : format(date, 'EEEE, MMM d');
       const dayTasks = active.filter(t => t.dueDate && isSameDay(parseISO(t.dueDate), date));
-      if (dayTasks.length > 0) {
-        days.push({ date, label, tasks: dayTasks });
-      }
+      if (dayTasks.length > 0) days.push({ label, tasks: dayTasks });
     }
 
     const laterDate = addDays(today, 14);
     const later = active.filter(t => t.dueDate && isAfter(parseISO(t.dueDate), laterDate));
-    if (later.length > 0) {
-      days.push({ date: laterDate, label: 'Later', tasks: later });
-    }
+    if (later.length > 0) days.push({ label: 'Later', tasks: later });
 
-    return days;
+    return {
+      grouped: days,
+      noDueDateTasks: active.filter(t => !t.dueDate),
+    };
   }, [tasks]);
 
-  const noDueDateTasks = useMemo(() =>
-    tasks.filter(t => !t.archived && t.status !== 'completed' && !t.dueDate),
-  [tasks]);
+  const totalUpcoming = grouped.reduce((sum, g) => sum + g.tasks.length, 0) + noDueDateTasks.length;
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Upcoming</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Next 14 days and beyond</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Upcoming</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{totalUpcoming} tasks in the next 14 days</p>
       </div>
 
       {grouped.length === 0 && noDueDateTasks.length === 0 && (
@@ -45,20 +42,20 @@ export default function UpcomingPage() {
       )}
 
       {grouped.map(group => (
-        <div key={group.label}>
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+        <section key={group.label}>
+          <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-2.5 flex items-center gap-2">
             {group.label}
-            <span className="text-xs font-normal text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">{group.tasks.length}</span>
+            <span className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded-full">{group.tasks.length}</span>
           </h2>
           <TaskList tasks={group.tasks} compact />
-        </div>
+        </section>
       ))}
 
       {noDueDateTasks.length > 0 && (
-        <div>
-          <h2 className="text-base font-semibold text-gray-500 dark:text-gray-400 mb-3">No Due Date ({noDueDateTasks.length})</h2>
+        <section>
+          <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400 mb-2.5">No Due Date <span className="font-medium text-gray-400">({noDueDateTasks.length})</span></h2>
           <TaskList tasks={noDueDateTasks} compact />
-        </div>
+        </section>
       )}
     </div>
   );

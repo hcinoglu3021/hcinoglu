@@ -2,31 +2,22 @@ import { useMemo, useState } from 'react';
 import { useStore } from '../store/useStore';
 import TaskList from '../components/TaskList';
 import {
-  format,
-  startOfMonth,
-  endOfMonth,
-  startOfWeek,
-  endOfWeek,
-  eachDayOfInterval,
-  isSameMonth,
-  isSameDay,
-  addMonths,
-  subMonths,
-  parseISO,
-  isToday,
+  format, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
+  eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO, isToday,
 } from 'date-fns';
 
 export default function CalendarPage() {
   const tasks = useStore(s => s.tasks);
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(currentMonth);
-    const start = startOfWeek(monthStart, { weekStartsOn: 1 });
-    const end = endOfWeek(monthEnd, { weekStartsOn: 1 });
-    return eachDayOfInterval({ start, end });
+    return eachDayOfInterval({
+      start: startOfWeek(monthStart, { weekStartsOn: 1 }),
+      end: endOfWeek(monthEnd, { weekStartsOn: 1 }),
+    });
   }, [currentMonth]);
 
   const tasksByDate = useMemo(() => {
@@ -40,7 +31,6 @@ export default function CalendarPage() {
   }, [tasks]);
 
   const selectedTasks = useMemo(() => {
-    if (!selectedDate) return [];
     const key = format(selectedDate, 'yyyy-MM-dd');
     return tasksByDate.get(key) || [];
   }, [selectedDate, tasksByDate]);
@@ -48,56 +38,69 @@ export default function CalendarPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Calendar</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Calendar</h1>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+      <div className="bg-white dark:bg-gray-800/80 rounded-xl border border-gray-200/80 dark:border-gray-700/60 p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-none">
+        {/* Month nav */}
         <div className="flex items-center justify-between mb-4">
-          <button onClick={() => setCurrentMonth(m => subMonths(m, 1))} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-            <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+          <button onClick={() => setCurrentMonth(m => subMonths(m, 1))} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" aria-label="Previous month">
+            <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
           </button>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{format(currentMonth, 'MMMM yyyy')}</h2>
-          <button onClick={() => setCurrentMonth(m => addMonths(m, 1))} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-            <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+          <div className="text-center">
+            <h2 className="text-base font-bold text-gray-900 dark:text-white">{format(currentMonth, 'MMMM yyyy')}</h2>
+            <button onClick={() => { setCurrentMonth(new Date()); setSelectedDate(new Date()); }} className="text-[11px] text-primary-600 dark:text-primary-400 hover:underline font-medium">Today</button>
+          </div>
+          <button onClick={() => setCurrentMonth(m => addMonths(m, 1))} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" aria-label="Next month">
+            <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
           </button>
         </div>
 
-        <div className="grid grid-cols-7 gap-1">
+        {/* Day headers */}
+        <div className="grid grid-cols-7 mb-1">
           {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-            <div key={day} className="text-xs font-medium text-gray-400 text-center py-2">{day}</div>
+            <div key={day} className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 text-center py-2 uppercase tracking-wider">{day}</div>
           ))}
+        </div>
+
+        {/* Calendar grid */}
+        <div className="grid grid-cols-7 gap-px bg-gray-100 dark:bg-gray-700/40 rounded-lg overflow-hidden">
           {calendarDays.map(day => {
             const key = format(day, 'yyyy-MM-dd');
             const dayTasks = tasksByDate.get(key) || [];
             const inMonth = isSameMonth(day, currentMonth);
-            const isSelected = selectedDate && isSameDay(day, selectedDate);
+            const isSelected = isSameDay(day, selectedDate);
             const today = isToday(day);
+            const hasComplete = dayTasks.some(t => t.status === 'completed');
+            const hasIncomplete = dayTasks.some(t => t.status !== 'completed');
 
             return (
               <button
                 key={key}
                 onClick={() => setSelectedDate(day)}
-                className={`relative p-2 rounded-lg text-sm transition-colors min-h-[40px] ${
+                aria-label={`${format(day, 'MMMM d, yyyy')}, ${dayTasks.length} tasks`}
+                className={`relative py-2 px-1 text-sm transition-colors bg-white dark:bg-gray-800/80 min-h-[44px] flex flex-col items-center ${
                   isSelected
-                    ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 font-semibold'
+                    ? 'bg-primary-50 dark:bg-primary-900/20 z-10 ring-1 ring-primary-400'
                     : today
-                    ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 font-medium'
-                    : inMonth
-                    ? 'text-gray-900 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    : 'text-gray-300 dark:text-gray-600'
+                    ? 'bg-primary-50/50 dark:bg-primary-900/10'
+                    : !inMonth
+                    ? 'opacity-30'
+                    : 'hover:bg-gray-50 dark:hover:bg-gray-700/40'
                 }`}
               >
-                {format(day, 'd')}
+                <span className={`text-xs tabular-nums leading-none ${
+                  isSelected ? 'font-bold text-primary-700 dark:text-primary-300' :
+                  today ? 'font-bold text-primary-600 dark:text-primary-400' :
+                  'text-gray-700 dark:text-gray-300'
+                }`}>
+                  {format(day, 'd')}
+                </span>
                 {dayTasks.length > 0 && (
-                  <div className="flex justify-center gap-0.5 mt-0.5">
-                    {dayTasks.slice(0, 3).map((t, i) => (
-                      <span key={i} className={`w-1.5 h-1.5 rounded-full ${
-                        t.priority === 'urgent' ? 'bg-red-500' :
-                        t.priority === 'high' ? 'bg-orange-500' :
-                        t.priority === 'medium' ? 'bg-yellow-500' : 'bg-blue-500'
-                      }`} />
-                    ))}
-                    {dayTasks.length > 3 && <span className="text-[8px] text-gray-400">+{dayTasks.length - 3}</span>}
+                  <div className="flex gap-0.5 mt-1">
+                    {hasIncomplete && <span className="w-1 h-1 rounded-full bg-primary-500" />}
+                    {hasComplete && <span className="w-1 h-1 rounded-full bg-emerald-500" />}
+                    {dayTasks.length > 2 && <span className="text-[8px] text-gray-400 leading-none">+{dayTasks.length - 1}</span>}
                   </div>
                 )}
               </button>
@@ -106,15 +109,14 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {selectedDate && (
-        <div>
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-3">
-            {format(selectedDate, 'EEEE, MMMM d, yyyy')}
-            <span className="text-xs font-normal text-gray-400 ml-2">{selectedTasks.length} tasks</span>
-          </h2>
-          <TaskList tasks={selectedTasks} emptyTitle="No tasks on this day" />
-        </div>
-      )}
+      {/* Selected date tasks */}
+      <section>
+        <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-2.5">
+          {format(selectedDate, 'EEEE, MMMM d')}
+          <span className="text-gray-400 font-medium ml-1">({selectedTasks.length})</span>
+        </h2>
+        <TaskList tasks={selectedTasks} emptyTitle="No tasks on this day" emptyDescription="Click a date to see its tasks." />
+      </section>
     </div>
   );
 }

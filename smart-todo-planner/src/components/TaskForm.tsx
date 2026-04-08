@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { useToastStore } from '../hooks/useToast';
 import SubtaskList from './SubtaskList';
@@ -16,6 +16,7 @@ export default function TaskForm({ task, onClose }: Props) {
   const tasks = useStore(s => s.tasks);
   const addToast = useToastStore(s => s.addToast);
   const categories = getAllCategories(tasks);
+  const titleRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     title: task?.title || '',
@@ -34,10 +35,11 @@ export default function TaskForm({ task, onClose }: Props) {
     reminderDatetime: task?.reminderDatetime ? task.reminderDatetime.slice(0, 16) : '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.title.trim()) return;
+  const set = (key: string, val: string | boolean) => setForm(f => ({ ...f, [key]: val }));
 
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!form.title.trim()) return;
     const data: Partial<Task> = {
       title: form.title.trim(),
       description: form.description.trim(),
@@ -54,76 +56,51 @@ export default function TaskForm({ task, onClose }: Props) {
       reminderEnabled: form.reminderEnabled,
       reminderDatetime: form.reminderDatetime ? new Date(form.reminderDatetime).toISOString() : null,
     };
-
-    if (task) {
-      updateTask(task.id, data);
-      addToast('Task updated');
-    } else {
-      addTask(data);
-      addToast('Task created');
-    }
+    if (task) { updateTask(task.id, data); addToast('Task updated'); }
+    else { addTask(data); addToast('Task created'); }
     onClose();
   };
 
   useEffect(() => {
+    titleRef.current?.focus();
     const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', handleEsc);
     return () => document.removeEventListener('keydown', handleEsc);
   }, [onClose]);
 
-  const inputClass = 'w-full text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-900 dark:text-white outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400 transition-colors';
-  const labelClass = 'block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1';
+  const inp = 'w-full text-sm bg-gray-50 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700/60 rounded-lg px-3 py-2 text-gray-900 dark:text-white outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400/30 transition-all placeholder-gray-400 dark:placeholder-gray-500';
+  const lbl = 'block text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-20 overflow-y-auto" onClick={onClose}>
-      <div className="fixed inset-0 bg-black/50" />
-      <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{task ? 'Edit Task' : 'New Task'}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+    <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-[8vh] sm:pt-[12vh] overflow-y-auto animate-fade-in" onClick={onClose}>
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px]" />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="task-form-title"
+        className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-xl animate-slide-up border border-gray-200/50 dark:border-gray-700/40"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 pt-5 pb-4">
+          <h2 id="task-form-title" className="text-base font-bold text-gray-900 dark:text-white">{task ? 'Edit Task' : 'New Task'}</h2>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors" aria-label="Close">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
-          <div>
-            <label className={labelClass}>Title *</label>
-            <input
-              autoFocus
-              value={form.title}
-              onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-              placeholder="What needs to be done?"
-              className={inputClass}
-              required
-            />
-          </div>
+        <form onSubmit={handleSubmit} className="px-6 pb-2 space-y-4 max-h-[60vh] overflow-y-auto">
+          {/* Title */}
+          <input ref={titleRef} value={form.title} onChange={e => set('title', e.target.value)} placeholder="Task title" className={`${inp} !text-base font-medium !border-0 !bg-transparent !px-0 !ring-0`} required />
 
-          <div>
-            <label className={labelClass}>Description</label>
-            <textarea
-              value={form.description}
-              onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-              placeholder="Add more details..."
-              rows={3}
-              className={inputClass}
-            />
-          </div>
+          {/* Description */}
+          <textarea value={form.description} onChange={e => set('description', e.target.value)} placeholder="Add description..." rows={2} className={`${inp} resize-none`} />
 
-          <div className="grid grid-cols-2 gap-4">
+          {/* Priority + Status row */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelClass}>Due Date</label>
-              <input type="date" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} className={inputClass} />
-            </div>
-            <div>
-              <label className={labelClass}>Due Time</label>
-              <input type="time" value={form.dueTime} onChange={e => setForm(f => ({ ...f, dueTime: e.target.value }))} className={inputClass} />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={labelClass}>Priority</label>
-              <select value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value as Priority }))} className={inputClass}>
+              <label className={lbl}>Priority</label>
+              <select value={form.priority} onChange={e => set('priority', e.target.value)} className={inp}>
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
                 <option value="high">High</option>
@@ -131,8 +108,8 @@ export default function TaskForm({ task, onClose }: Props) {
               </select>
             </div>
             <div>
-              <label className={labelClass}>Status</label>
-              <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as Status }))} className={inputClass}>
+              <label className={lbl}>Status</label>
+              <select value={form.status} onChange={e => set('status', e.target.value)} className={inp}>
                 <option value="not_started">Not Started</option>
                 <option value="in_progress">In Progress</option>
                 <option value="completed">Completed</option>
@@ -141,43 +118,44 @@ export default function TaskForm({ task, onClose }: Props) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          {/* Date + Time row */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelClass}>Category</label>
-              <input
-                list="categories"
-                value={form.category}
-                onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                placeholder="e.g., Work, Personal"
-                className={inputClass}
-              />
-              <datalist id="categories">
-                {categories.map(c => <option key={c} value={c} />)}
-              </datalist>
+              <label className={lbl}>Due Date</label>
+              <input type="date" value={form.dueDate} onChange={e => set('dueDate', e.target.value)} className={inp} />
             </div>
             <div>
-              <label className={labelClass}>Tags (comma separated)</label>
-              <input
-                value={form.tags}
-                onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
-                placeholder="e.g., bug, frontend"
-                className={inputClass}
-              />
+              <label className={lbl}>Due Time</label>
+              <input type="time" value={form.dueTime} onChange={e => set('dueTime', e.target.value)} className={inp} />
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          {/* Category + Tags */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelClass}>Est. Time (min)</label>
-              <input type="number" min="0" value={form.estimatedTime} onChange={e => setForm(f => ({ ...f, estimatedTime: e.target.value }))} className={inputClass} placeholder="e.g., 60" />
+              <label className={lbl}>Category</label>
+              <input list="categories" value={form.category} onChange={e => set('category', e.target.value)} placeholder="e.g. Work" className={inp} />
+              <datalist id="categories">{categories.map(c => <option key={c} value={c} />)}</datalist>
             </div>
             <div>
-              <label className={labelClass}>Actual Time (min)</label>
-              <input type="number" min="0" value={form.actualTime} onChange={e => setForm(f => ({ ...f, actualTime: e.target.value }))} className={inputClass} placeholder="e.g., 45" />
+              <label className={lbl}>Tags</label>
+              <input value={form.tags} onChange={e => set('tags', e.target.value)} placeholder="comma separated" className={inp} />
+            </div>
+          </div>
+
+          {/* Time + Recurrence */}
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className={lbl}>Est. Time (min)</label>
+              <input type="number" min="0" value={form.estimatedTime} onChange={e => set('estimatedTime', e.target.value)} className={inp} placeholder="60" />
             </div>
             <div>
-              <label className={labelClass}>Recurrence</label>
-              <select value={form.recurrence} onChange={e => setForm(f => ({ ...f, recurrence: e.target.value as Recurrence }))} className={inputClass}>
+              <label className={lbl}>Actual (min)</label>
+              <input type="number" min="0" value={form.actualTime} onChange={e => set('actualTime', e.target.value)} className={inp} placeholder="45" />
+            </div>
+            <div>
+              <label className={lbl}>Recurrence</label>
+              <select value={form.recurrence} onChange={e => set('recurrence', e.target.value)} className={inp}>
                 <option value="none">None</option>
                 <option value="daily">Daily</option>
                 <option value="weekly">Weekly</option>
@@ -186,35 +164,45 @@ export default function TaskForm({ task, onClose }: Props) {
             </div>
           </div>
 
+          {/* Notes */}
           <div>
-            <label className={labelClass}>Notes</label>
-            <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} className={inputClass} placeholder="Additional notes..." />
+            <label className={lbl}>Notes</label>
+            <textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={2} className={`${inp} resize-none`} placeholder="Additional notes..." />
           </div>
 
-          <div className="flex items-center gap-4">
+          {/* Reminder */}
+          <div className="flex items-center gap-3">
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={form.reminderEnabled} onChange={e => setForm(f => ({ ...f, reminderEnabled: e.target.checked }))} className="rounded border-gray-300 dark:border-gray-600 text-primary-600" />
-              <span className="text-sm text-gray-700 dark:text-gray-300">Enable reminder</span>
+              <input type="checkbox" checked={form.reminderEnabled} onChange={e => set('reminderEnabled', e.target.checked)} className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-primary-600" />
+              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Reminder</span>
             </label>
             {form.reminderEnabled && (
-              <input type="datetime-local" value={form.reminderDatetime} onChange={e => setForm(f => ({ ...f, reminderDatetime: e.target.value }))} className={`${inputClass} w-auto`} />
+              <input type="datetime-local" value={form.reminderDatetime} onChange={e => set('reminderDatetime', e.target.value)} className={`${inp} !w-auto text-xs`} />
             )}
           </div>
 
-          {task && (
+          {/* Subtasks (edit mode only) */}
+          {task && task.subtasks.length > 0 && (
             <div>
-              <label className={labelClass}>Subtasks</label>
+              <label className={lbl}>Subtasks</label>
+              <SubtaskList taskId={task.id} subtasks={task.subtasks} />
+            </div>
+          )}
+          {task && task.subtasks.length === 0 && (
+            <div>
+              <label className={lbl}>Subtasks</label>
               <SubtaskList taskId={task.id} subtasks={task.subtasks} />
             </div>
           )}
         </form>
 
-        <div className="flex gap-3 justify-end p-5 border-t border-gray-200 dark:border-gray-700">
-          <button onClick={onClose} className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+        {/* Footer */}
+        <div className="flex gap-3 justify-end px-6 py-4 border-t border-gray-100 dark:border-gray-700/50">
+          <button onClick={onClose} className="px-4 py-2 text-sm font-medium rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
             Cancel
           </button>
-          <button onClick={handleSubmit} disabled={!form.title.trim()} className="px-4 py-2 text-sm font-medium rounded-lg bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-40 transition-colors">
-            {task ? 'Save Changes' : 'Create Task'}
+          <button onClick={() => handleSubmit()} disabled={!form.title.trim()} className="px-5 py-2 text-sm font-semibold rounded-lg bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800 disabled:opacity-40 transition-colors">
+            {task ? 'Save' : 'Create Task'}
           </button>
         </div>
       </div>

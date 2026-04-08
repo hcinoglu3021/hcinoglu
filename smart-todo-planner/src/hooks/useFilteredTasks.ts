@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useStore } from '../store/useStore';
 import { sortTasks, searchTasks } from '../utils/helpers';
-import { isOverdue, isDueToday, isDueThisWeek } from '../utils/dates';
+import { isOverdue, isDueToday, isDueThisWeek, isDueThisMonth } from '../utils/dates';
 import type { Task } from '../types';
 
 export function useFilteredTasks(overrideTasks?: Task[]) {
@@ -42,6 +42,8 @@ export function useFilteredTasks(overrideTasks?: Task[]) {
       result = result.filter(t => isDueToday(t.dueDate));
     } else if (filter.dateRange === 'this_week') {
       result = result.filter(t => isDueThisWeek(t.dueDate));
+    } else if (filter.dateRange === 'this_month') {
+      result = result.filter(t => isDueThisMonth(t.dueDate));
     } else if (filter.dateRange === 'overdue') {
       result = result.filter(t => isOverdue(t.dueDate, t.status));
     }

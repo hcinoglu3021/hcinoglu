@@ -109,11 +109,13 @@ export const useStore = create<AppState>()(
       },
 
       updateTask: (id, updates) => {
+        const task = get().tasks.find(t => t.id === id);
         set(s => ({
           tasks: s.tasks.map(t =>
             t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
           ),
         }));
+        if (task) get().logActivity({ type: 'updated', taskTitle: task.title });
       },
 
       deleteTask: (id) => {
@@ -121,6 +123,8 @@ export const useStore = create<AppState>()(
         set(s => ({
           tasks: s.tasks.filter(t => t.id !== id),
           selectedTaskIds: s.selectedTaskIds.filter(i => i !== id),
+          focusModeTaskId: s.focusModeTaskId === id ? null : s.focusModeTaskId,
+          pomodoro: s.pomodoro.taskId === id ? { ...defaultPomodoro } : s.pomodoro,
         }));
         if (task) get().logActivity({ type: 'deleted', taskTitle: task.title });
       },
@@ -129,6 +133,8 @@ export const useStore = create<AppState>()(
         set(s => ({
           tasks: s.tasks.filter(t => !ids.includes(t.id)),
           selectedTaskIds: [],
+          focusModeTaskId: s.focusModeTaskId && ids.includes(s.focusModeTaskId) ? null : s.focusModeTaskId,
+          pomodoro: s.pomodoro.taskId && ids.includes(s.pomodoro.taskId) ? { ...defaultPomodoro } : s.pomodoro,
         }));
       },
 

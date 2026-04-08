@@ -65,8 +65,8 @@ export const priorityColors: Record<Priority, string> = {
 export const priorityBorderColors: Record<Priority, string> = {
   urgent: 'border-l-red-500',
   high: 'border-l-orange-500',
-  medium: 'border-l-yellow-500',
-  low: 'border-l-blue-500',
+  medium: 'border-l-amber-500',
+  low: 'border-l-sky-500',
 };
 
 export const statusLabels: Record<string, string> = {

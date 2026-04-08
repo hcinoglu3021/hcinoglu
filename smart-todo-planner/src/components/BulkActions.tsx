@@ -21,7 +21,7 @@ export default function BulkActions() {
         </span>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => { archiveTasks(selectedIds); addToast(`${selectedIds.length} tasks archived`); }}
+            onClick={() => { archiveTasks(selectedIds); clearSelection(); addToast(`${selectedIds.length} tasks archived`); }}
             className="px-3 py-1.5 text-xs font-medium rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
           >
             Archive
